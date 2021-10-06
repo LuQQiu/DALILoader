@@ -127,15 +127,11 @@ def main():
                   shard_id, master_addr, master_port))
 
     log_to_stderr(logging.DEBUG)
-    pool = Pool(processes=args.process)
-    dali_func = partial(dali, args.batch_size, train_dir, args.print_freq, num_shards)
+    # pool = Pool(processes=args.process)
+    # dali_func = partial(dali, args.batch_size, train_dir, args.print_freq, num_shards)
 
-    results = pool.map(dali_func, shard_id)
-    total_time = 0.0
-    image_per_second = 0.0
-    for result in results:
-        total_time += result[0]
-        image_per_second += result[1]
+    # results = pool.map(dali_func, shard_id)
+    total_time, image_per_second = dali(args.batch_size, train_dir, args.print_freq, num_shards, 0)
 
     # TODO(lu) add a socket to receive the img/sec from all nodes in the cluster
     print("Training end: Average speed: {:3f} img/sec, Total time: {:3f} sec"
