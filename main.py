@@ -83,6 +83,7 @@ def create_dali_pipeline(data_dir, num_shards, shard_id):
 
 
 def main():
+    print('Script launched')
     global args
     args = parse()
 
@@ -92,10 +93,12 @@ def main():
     args.distributed = False
     if 'WORLD_SIZE' in os.environ:
         args.distributed = int(os.environ['WORLD_SIZE']) > 1
+        print('distributed')
 
     rank = 0
     if 'RANK' in os.environ:
         rank = int(os.environ['RANK'])
+        print('rank is {}'.format(rank))
 
     args.world_size = 1
     if args.distributed:
