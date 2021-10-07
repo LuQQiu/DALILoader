@@ -83,7 +83,6 @@ def create_dali_pipeline(data_dir, num_shards, shard_id):
 
 
 def main():
-    print('Script launched')
     global args
     args = parse()
 
@@ -93,12 +92,10 @@ def main():
     args.distributed = False
     if 'WORLD_SIZE' in os.environ:
         args.distributed = int(os.environ['WORLD_SIZE']) > 1
-        print('distributed')
 
     rank = 0
     if 'RANK' in os.environ:
         rank = int(os.environ['RANK'])
-        print('rank is {}'.format(rank))
 
     args.world_size = 1
     if args.distributed:
@@ -130,11 +127,15 @@ def main():
                   shard_id, master_addr, master_port))
 
     log_to_stderr(logging.DEBUG)
-    # pool = Pool(processes=args.process)
-    # dali_func = partial(dali, args.batch_size, train_dir, args.print_freq, num_shards)
+    pool = Pool(processes=args.process)
+    dali_func = partial(dali, args.batch_size, train_dir, args.print_freq, num_shards)
 
-    # results = pool.map(dali_func, shard_id)
-    total_time, image_per_second = dali(args.batch_size, train_dir, args.print_freq, num_shards, 0)
+    results = pool.map(dali_func, shard_id)
+    total_time = 0.0
+    image_per_second = 0.0
+    for result in results:
+        total_time += result[0]
+        image_per_second += result[1]
 
     # TODO(lu) add a socket to receive the img/sec from all nodes in the cluster
     print("Training end: Average speed: {:3f} img/sec, Total time: {:3f} sec"
@@ -216,4 +217,3 @@ class AverageMeter(object):
 
 if __name__ == '__main__':
     main()
-
