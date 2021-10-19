@@ -132,7 +132,7 @@ def main():
     pool = Pool(processes=args.process)
     dali_func = partial(dali, args.batch_size, train_dir, args.print_freq, num_shards)
 
-    command = 'sudo sh -c "sync; echo 3 > /proc/sys/vm/drop_caches"'
+    command = 'sh -c "sync; echo 3 > /proc/sys/vm/drop_caches"'
     for epoch in range(0, args.epochs):
         print("Clearing system buffer cache")
         os.system(command)
