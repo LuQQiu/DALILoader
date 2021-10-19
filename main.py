@@ -132,11 +132,10 @@ def main():
     pool = Pool(processes=args.process)
     dali_func = partial(dali, args.batch_size, train_dir, args.print_freq, num_shards)
 
-    command = 'echo 3 > /proc/sys/vm/drop_caches'
     for epoch in range(0, args.epochs):
-        print("Clearing system buffer cache")
-        os.system(command)
-        print("Cleared system buffer cache")
+        print("Sleeping, time to clear system buffer cache")
+        time.sleep(180)
+        os.system("sync")
         results = pool.map(dali_func, shard_id)
         total_size = 0.0
         total_time = 0.0
