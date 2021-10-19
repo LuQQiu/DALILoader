@@ -127,14 +127,26 @@ def main():
           'num_shards[{}], current_shard_id[{}], master_addr[{}], master_port[{}]'
           .format(train_dir, args.world_size, rank, args.batch_size, args.process, num_shards,
                   shard_id, master_addr, master_port))
+    logger = logging.getLogger('dev')
+    logger.setLevel(logging.INFO)
 
+    fileHandler = logging.FileHandler('test.log')
+    fileHandler.setLevel(logging.INFO)
+
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setLevel(logging.INFO)
+
+    logger.addHandler(fileHandler)
+    logger.addHandler(consoleHandler)
+
+    logger.info('information message')
     pool = Pool(processes=args.process)
     dali_func = partial(dali, args.batch_size, train_dir, args.print_freq, num_shards)
 
     for epoch in range(0, args.epochs):
-        print("Sleeping, time to clear system buffer cache")
+        logger.info("Sleeping, time to clear system buffer cache")
         time.sleep(180)
-        os.system("sync")
+        logger.info("Running again")
         results = pool.map(dali_func, shard_id)
         total_size = 0.0
         total_time = 0.0
@@ -144,8 +156,10 @@ def main():
             total_time += result[1]
             image_per_second += result[2]
         # TODO(lu) add a socket to receive the img/sec from all nodes in the cluster
-        print("Epoch {} Training end: Average speed: {:3f} img/sec, Total time: {:3f} sec, Total size: {:3f} images"
-              .format(epoch, image_per_second, total_time, total_size))
+        logger.info(
+            "Epoch {} Training end: Average speed: {:3f} img/sec, Total time: {:3f} sec, Total size: {:3f} images"
+            .format(epoch, image_per_second, total_time, total_size))
+
 
 def dali(batch_size, train_dir, print_freq, num_shards, shard_id):
     print('Launching training script in child process: train_dir[{}], batch_size[{}], print_freq[{}], '
