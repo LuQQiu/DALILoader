@@ -128,7 +128,6 @@ def main():
           .format(train_dir, args.world_size, rank, args.batch_size, args.process, num_shards,
                   shard_id, master_addr, master_port))
 
-    log_to_stderr(logging.DEBUG)
     pool = Pool(processes=args.process)
     dali_func = partial(dali, args.batch_size, train_dir, args.print_freq, num_shards)
 
