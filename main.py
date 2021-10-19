@@ -34,10 +34,10 @@ def parse():
                         help='path(s) to dataset (if one path is provided, it is assumed\n' +
                              'to have subdirectories named "train" and "val"; alternatively,\n' +
                              'train and val paths can be specified directly by providing both paths as arguments)')
-    parser.add_argument('--process', default=4, type=int, metavar='N',
-                        help='number of data loading processes (default: 4)')
     parser.add_argument('--epochs', default=1, type=int, metavar='N',
                         help='number of total epochs to run')
+    parser.add_argument('--process', default=4, type=int, metavar='N',
+                        help='number of data loading processes (default: 4)')
     parser.add_argument('-b', '--batch-size', default=256, type=int,
                         metavar='N', help='mini-batch size per process (default: 256)')
     parser.add_argument('--print-freq', '-p', default=10, type=int,
@@ -130,20 +130,26 @@ def main():
 
     log_to_stderr(logging.DEBUG)
     pool = Pool(processes=args.process)
-    dali_func = partial(dali, args.batch_size, train_dir, args.print_freq, args.epochs, args.num_shards)
+    dali_func = partial(dali, args.batch_size, train_dir, args.print_freq, num_shards)
 
-    results = pool.map(dali_func, shard_id)
-    aggregated_throughput = [0.0] * args.epochs
-    for result in range(results):
-        for index in range(args.epochs):
-            aggregated_throughput[index] += result[0][index]
+    command = 'sudo sh -c "sync; echo 3 > /proc/sys/vm/drop_caches"'
+    for epoch in range(0, args.epochs):
+        print("Clearing system buffer cache")
+        os.system(command)
+        print("Cleared system buffer cache")
+        results = pool.map(dali_func, shard_id)
+        total_size = 0.0
+        total_time = 0.0
+        image_per_second = 0.0
+        for result in results:
+            total_size += result[0]
+            total_time += result[1]
+            image_per_second += result[2]
+        # TODO(lu) add a socket to receive the img/sec from all nodes in the cluster
+        print("Epoch {} Training end: Average speed: {:3f} img/sec, Total time: {:3f} sec, Total size: {:3f} images"
+              .format(epoch, image_per_second, total_time, total_size))
 
-    # TODO(lu) add a socket to receive the img/sec from all nodes in the cluster
-    print("Training end: Average speed:")
-    print(*aggregated_throughput, sep = " img/sec, ")
-
-
-def dali(batch_size, train_dir, print_freq, num_shards, epoch_number, shard_id):
+def dali(batch_size, train_dir, print_freq, num_shards, shard_id):
     print('Launching training script in child process: train_dir[{}], batch_size[{}], print_freq[{}], '
           'num_shards[{}], current_shard_id[{}], starting at[{}]'
           .format(train_dir, batch_size, print_freq, num_shards, shard_id, datetime.now().time()))
@@ -159,11 +165,9 @@ def dali(batch_size, train_dir, print_freq, num_shards, epoch_number, shard_id):
     train_loader = DALIClassificationIterator(pipe, reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL)
 
     # train for one epoch
-    throughputs = []
-    for epoch in range(0, epoch_number):
-        throughput = train(train_loader, batch_size, print_freq, shard_id)
-        throughputs.append(throughput)
-    return throughputs
+    total_size, total_duration, throughput = train(train_loader, batch_size, print_freq, shard_id)
+    train_loader.reset()
+    return total_size, total_duration, throughput
 
 
 def train(train_loader, batch_size, print_freq, shard_id):
@@ -196,7 +200,7 @@ def train(train_loader, batch_size, print_freq, shard_id):
     throughput = train_loader._size / total_time
     print('Training in child process ends: Speed: {} image/s, Data Size: {} images, End Time: {}'
           .format(throughput, train_loader._size, datetime.now().time()))
-    return throughput
+    return train_loader._size, total_time, throughput
 
 
 class AverageMeter(object):
