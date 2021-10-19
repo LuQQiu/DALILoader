@@ -144,9 +144,6 @@ def main():
     dali_func = partial(dali, args.batch_size, train_dir, args.print_freq, num_shards)
 
     for epoch in range(0, args.epochs):
-        logger.info("Sleeping, time to clear system buffer cache")
-        time.sleep(180)
-        logger.info("Running again")
         results = pool.map(dali_func, shard_id)
         total_size = 0.0
         total_time = 0.0
@@ -159,6 +156,9 @@ def main():
         logger.info(
             "Epoch {} Training end: Average speed: {:3f} img/sec, Total time: {:3f} sec, Total size: {:3f} images"
             .format(epoch, image_per_second, total_time, total_size))
+        logger.info("Sleeping, time to clear system buffer cache")
+        time.sleep(300)
+        logger.info("Running again")
 
 
 def dali(batch_size, train_dir, print_freq, num_shards, shard_id):
