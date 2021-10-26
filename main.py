@@ -138,12 +138,8 @@ def main():
         raise Exception("error: No data set provided")
 
     # set cluster logging
-    # TODO(lu) does the log shows twice the info needed?
-    logger = logging.getLogger('dev')
+    logger = logging.getLogger('alluxio_dali_data_loading')
     logger.setLevel(logging.INFO)
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    logger.addHandler(console_handler)
 
     if len(args.data) == 1:
         train_dir = os.path.join(args.data[0], 'train')
