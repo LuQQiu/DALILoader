@@ -119,7 +119,7 @@ def train(train_loader, batch_size, print_freq, logger, shard_id):
         target = data[0]["label"].squeeze(-1).long()
         if i % print_freq == 0:
             if shard_id == 0:
-                logger.info('[[}/{}] Time: {}'.format(
+                logger.info('[{}/{}] Time: {}'.format(
                     i, train_loader_len, time.time() - end))
         # use the sleep to mock actual training logic
         time.sleep(0.5)
